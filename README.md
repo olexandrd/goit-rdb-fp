@@ -69,3 +69,102 @@ FROM
 
 ![cases_by_year](img/p2-2.png)
 ![regions](img/p2-2.png)
+
+## 3. Статистичні запити
+
+Cереднє, мінімальне, максимальне значення та суму для атрибута Number_rabies:
+
+```sql
+SELECT
+ regionId,
+ Entity as region,
+ AVG(Number_rabies) as Average_Rabies,
+ MIN(Number_rabies) as Min_Rabies,
+ MAX(Number_rabies) as Max_Rabies,
+ SUM(Number_rabies) as Sum_Rabies
+FROM
+ cases_by_year
+ INNER JOIN regions ON cases_by_year.regionId = regions.id
+WHERE
+ Number_rabies IS NOT NULL
+GROUP BY
+ regionId;
+```
+
+![select all regions, avg, minm max, sum](img/p3-1.png)
+
+10 посортованих результатів за середнім значенням атрибута Number_rabies:
+
+```sql
+SELECT
+ regionId,
+ Entity AS region,
+ AVG(Number_rabies) AS Average_Rabies,
+ MIN(Number_rabies) AS Min_Rabies,
+ MAX(Number_rabies) AS Max_Rabies,
+ SUM(Number_rabies) AS Sum_Rabies
+FROM
+ cases_by_year
+ INNER JOIN regions ON cases_by_year.regionId = regions.id
+WHERE
+ Number_rabies IS NOT NULL
+GROUP BY
+ regionId
+ORDER BY
+ Average_Rabies DESC
+LIMIT 10;
+```
+
+![select top 10 regions by avg](img/p3-2.png)
+
+## 4. Обчислення різниці часу
+
+Вибираємо тільки атрибути id, regionId, Year та обчислюємо:
+
+* атрибут, що створює дату першого січня відповідного року (*first_day_of_year*)
+* атрибут, що дорівнює поточній даті (*today_date*)
+* атрибут, що дорівнює різниці в роках двох вищезгаданих колонок (*years_ago*)
+
+```sql
+SELECT
+ id,
+ regionId,
+ Year,
+ MAKEDATE(Year, 1) AS first_day_of_year,
+ CURRENT_DATE() AS today_date,
+ TIMESTAMPDIFF(YEAR, MAKEDATE(Year, 1), CURRENT_DATE()) as years_ago
+FROM
+ cases_by_year;
+```
+
+![select years ago](img/p4.png)
+
+## 5. Функція розрахунку кількості років
+
+Функція `calculate_year_diff` приймає рік та повертає різницю в роках між роком з атрибуту *Year* та поточною датою.
+
+```sql
+DROP FUNCTION IF EXISTS calculate_year_diff;
+DELIMITER //
+CREATE FUNCTION calculate_year_diff(input_year YEAR)
+RETURNS INT
+DETERMINISTIC
+NO SQL
+BEGIN
+ RETURN TIMESTAMPDIFF(YEAR, MAKEDATE(input_year, 1), CURRENT_DATE());
+END;
+//
+DELIMITER ;
+```
+
+```sql
+SELECT
+ id,
+ regionId,
+ Year,
+ calculate_year_diff (Year) AS years_ago
+FROM
+ cases_by_year;
+```
+
+![select years ago with function](img/p5.png)
